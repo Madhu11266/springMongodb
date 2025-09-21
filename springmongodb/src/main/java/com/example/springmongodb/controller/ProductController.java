@@ -4,15 +4,14 @@ import com.example.springmongodb.entity.Product;
 import com.example.springmongodb.entity.User;
 import com.example.springmongodb.repo.ProductRepo;
 import com.example.springmongodb.repo.UserRepo;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+@RestController
+@RequestMapping("/api/product")
 public class ProductController {
 
     private ProductRepo productRepo;
