@@ -1,0 +1,199 @@
+MongoDB_preparation
+--------------------------------------
+DAY-1:
+
+DOcker installation :docker run -d  --name mongodb -p 27017:27017 -e MONGO_INITDB_ROOT_USERNAME=admin -e MONGO_INITDB_ROOT_PASSWORD=admin123 mongo:6.0
+
+with replica set:
+docker run -d --name mongodb -p 27017:27017 -e MONGO_INITDB_ROOT_USERNAME=admin -e MONGO_INITDB_ROOT_PASSWORD=admin123 mongo:6.0 --replSet rs0
+
+
+docker run -d --name mongodb -p 27017:27017 -v mongo-data:/data/db mongo:6.0 bash -c "echo 'mySuperSecretKey123' > /data/db/mongo-keyfile && chmod 600 /data/db/mongo-keyfile && mongod --replSet rs0 --auth --keyFile /data/db/mongo-keyfile --bind_ip_all"
+
+
+
+
+we can connect to mongodb using 
+mongosh terminal :docker exec -it mongodb mongosh -u admin -p admin123
+Use MongoDB Compass (GUI, connect to mongodb://admin:admin123@localhost:27017
+
+
+creating or moving to db -> use dbname;
+inserting one record: db.users.insertOne({name:"madhu",age:20})
+
+inserting many records: db.users.insertMany([{name:"insm1",age:34,active:true},{name:"insm2",age:34},{name:"insm1",active:true}])
+
+
+// Fetch all users
+db.users.find()
+
+// Find users from Bangalore
+db.users.find({ city: "Bangalore" })
+
+// Find users older than 30
+db.users.find({ age: { $gt: 30 } })
+
+// Find users from Bangalore AND active
+db.users.find({ city: "Bangalore", active: true })
+
+
+// Find users from Hyderabad OR Delhi
+db.users.find({ $or: [ { city: "Hyderabad" }, { city: "Delhi" } ] })
+
+// Equality
+db.users.find({ city: { $eq: "Bangalore" } })
+
+// IN clause
+db.users.find({ city: { $in: ["Bangalore", "Hyderabad"] } })
+
+// AND condition (age > 25 AND city = Bangalore)
+db.users.find({ $and: [ { age: { $gt: 25 } }, { city: "Bangalore" } ] })
+
+// OR condition (city = Delhi OR age < 20)
+db.users.find({ $or: [ { city: "Delhi" }, { age: { $lt: 20 } } ] })
+
+
+// Update one user’s email
+db.users.updateOne(
+  { name: "Alice" },
+  { $set: { email: "alice_new@example.com" } }
+)
+
+
+// Increase Bob’s age by 1
+db.users.updateOne(
+  { name: "Bob" },
+  { $inc: { age: 1 } }
+)
+
+// Mark all Bangalore users as inactive
+db.users.updateMany(
+  { city: "Bangalore" },
+  { $set: { active: false } }
+)
+
+
+
+// Delete one inactive user
+db.users.deleteOne({ active: false })
+
+// Delete all users from Delhi
+db.users.deleteMany({ city: "Delhi" })
+
+//for document count
+db.users.countDocuments()
+
+//collection drop 
+db.users.drop()
+
+//database drop
+db.dropDatabase()
+
+
+
+DAY-2:
+
+
+//explain command
+db.users.find({ email: "alice@example.com" }).explain("executionStats")
+
+//to get indexes
+db.users.getIndexes()
+
+//to create Index
+db.users.createIndex({email:1})  ->for descending we can use -1
+
+db.users.dropIndex({ email: 1 })
+db.users.dropIndex("city_1_ge_-1")
+
+// unique index on email
+db.users.createIndex({ email: 1 }, { unique: true })
+
+
+//aggreagation
+db.users.aggregate([{$match:{name:"madhu"}}])
+
+
+db.users.aggregate([{$group:{_id:"$name",totalCount:{$sum:1}}}])
+
+
+//for avg
+db.users.aggregate([{$group:{_id:"$name",avgAge:{$avg:"$age"}}}])
+
+db.users.aggregate([{$sort:{name:1}}])// for desc we can give -1
+
+db.users.aggregate([{$project:{name:1,age:1,_id:0}},{$limit:2}]) //project will shows data that mentioned 1 and limit allows to display only 2 records
+
+
+// Find users whose name starts with "A"
+db.users.find({ name: { $regex: "^A" } })
+
+// Case-insensitive
+db.users.find({ name: { $regex: "madhu", $options: "i" } })
+
+
+//$text
+
+db.users.createIndex({ name: "text", bio: "text", skills: "text" })
+
+db.users.find({ $text: { $search: "mongodb spring" } })
+
+db.users.find({ $text: { $search: "\"spring boot\"" } })
+
+
+db.users.find({$text:{$search:"madhu"}},{score:{$meta:"textScore"},name:1,email:1,city:1}).sort({score:{$meta:"textScore"}})
+
+
+
+$lookup is like joins in sql
+
+db.users.aggregate([
+  {
+    $lookup: {
+      from: "orders",        // target collection
+      localField: "_id",     // field from users
+      foreignField: "userId",// field from orders
+      as: "orders"           // new array field
+    }
+  }
+])
+
+
+
+transaction :
+const session = db.getMongo().startSession();
+const usersColl = session.getDatabase("testdb").users;
+
+session.startTransaction();
+
+try {
+  usersColl.updateOne(
+    { name: "Alice" },
+    { $inc: { balance: -100 } }
+  );
+
+  usersColl.updateOne(
+    { name: "Bob" },
+    { $inc: { balance: 100 } }
+  );
+
+  session.commitTransaction();
+  print("✅ Transaction committed");
+} catch (e) {
+  session.abortTransaction();
+  print("❌ Transaction aborted: " + e);
+} finally {
+  session.endSession();
+}
+
+
+
+
+
+
+
+
+
+
+
+
